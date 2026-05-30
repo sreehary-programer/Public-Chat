@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dev-workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/tabler-icons.min.css" />
+   <link rel="stylesheet" href="src/styles.css"/>     
+  
+</head>
+<body>
+
+  <!-- Sidebar overlay — tap to close on mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ── Add Channel Modal ── -->
+  <div class="modal-backdrop" id="addChannelModal">
+    <div class="modal">
+      <p class="modal-title">Create a Channel</p>
+      <p class="modal-subtitle">Channels bring team conversations together in one place.</p>
+      <div class="modal-field">
+        <label class="modal-label">Channel name</label>
+        <input class="modal-input" id="newChannelName" type="text" placeholder="e.g. project-alpha" maxlength="40" />
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Description <span style="color:#3f4a5e;font-weight:400">(optional)</span></label>
+        <input class="modal-input" id="newChannelDesc" type="text" placeholder="What's this channel about?" maxlength="80" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="cancelAddChannel">Cancel</button>
+        <button class="btn-primary" id="confirmAddChannel">Create Channel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Reaction picker (global, repositioned via JS) ── -->
+  <div class="reaction-picker" id="reactionPicker">
+    <button class="emoji-btn" data-emoji="👍">👍</button>
+    <button class="emoji-btn" data-emoji="❤️">❤️</button>
+    <button class="emoji-btn" data-emoji="😂">😂</button>
+    <button class="emoji-btn" data-emoji="🚀">🚀</button>
+    <button class="emoji-btn" data-emoji="👀">👀</button>
+    <button class="emoji-btn" data-emoji="✅">✅</button>
+    <button class="emoji-btn" data-emoji="🔥">🔥</button>
+    <button class="emoji-btn" data-emoji="💯">💯</button>
+  </div>
+
+  <div class="workspace">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar" id="sidebar">
+
+      <!-- Sidebar header -->
+      <div class="sidebar-topbar">
+        <div class="workspace-name">
+          <span class="dot"></span>
+          dev-workspace
+        </div>
+        <button class="icon-btn sidebar-close-btn" id="closeSidebar" aria-label="Close menu">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      <p class="channel-section-label">
+        <span>Channels</span>
+        <button class="add-channel-btn" id="addChannelBtn" title="Add channel"><i class="ti ti-plus"></i></button>
+      </p>
+
+      <div class="channel-list" id="channelList">
+        <div class="channel-item active" data-channel-id="ch_general">
+          <i class="ti ti-hash ch-icon"></i>
+          <span class="ch-label">general</span>
+          <span class="badge">3</span>
+        </div>
+        <div class="channel-item" data-channel-id="ch_engineering">
+          <i class="ti ti-hash ch-icon"></i>
+          <span class="ch-label">engineering-room</span>
+          <span class="badge">2</span>
+        </div>
+        <div class="channel-item" data-channel-id="ch_design">
+          <i class="ti ti-hash ch-icon"></i>
+          <span class="ch-label">design-system</span>
+        </div>
+        <div class="channel-item" data-channel-id="ch_api">
+          <i class="ti ti-hash ch-icon"></i>
+          <span class="ch-label">api-integration</span>
+        </div>
+        <div class="channel-item" data-channel-id="ch_deployments">
+          <i class="ti ti-hash ch-icon"></i>
+          <span class="ch-label">deployments</span>
+          <span class="badge">1</span>
+        </div>
+        <div class="channel-item" data-channel-id="ch_review">
+          <i class="ti ti-hash ch-icon"></i>
+          <span class="ch-label">code-review</span>
+        </div>
+        <div class="channel-item" data-channel-id="ch_incidents">
+          <i class="ti ti-hash ch-icon"></i>
+          <span class="ch-label">incidents</span>
+        </div>
+        <div class="channel-item" data-channel-id="ch_releases">
+          <i class="ti ti-hash ch-icon"></i>
+          <span class="ch-label">releases</span>
+        </div>
+
+        <p class="channel-section-label direct-label" style="padding-left:0">Direct</p>
+        <div class="channel-item">
+          <i class="ti ti-point-filled" style="color:#34d399;font-size:12px;flex-shrink:0"></i>
+          <span class="ch-label">maya.r</span>
+        </div>
+        <div class="channel-item">
+          <i class="ti ti-point-filled" style="color:#fb923c;font-size:12px;flex-shrink:0"></i>
+          <span class="ch-label">j.park</span>
+        </div>
+        <div class="channel-item">
+          <i class="ti ti-point-filled" style="color:#505a6e;font-size:12px;flex-shrink:0"></i>
+          <span class="ch-label">sam.dev</span>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="avatar avatar--out" style="position:relative">
+          YO
+          <div class="status-menu" id="statusMenu">
+            <div class="status-menu-item" data-status="online">
+              <span class="status-dot" style="background:#34d399"></span> Online
+            </div>
+            <div class="status-menu-item" data-status="away">
+              <span class="status-dot" style="background:#ef9f27"></span> Away
+            </div>
+            <div class="status-menu-item" data-status="dnd">
+              <span class="status-dot" style="background:#e24b4a"></span> Do Not Disturb
+            </div>
+            <div class="status-menu-item" data-status="offline">
+              <span class="status-dot" style="background:#505a6e"></span> Invisible
+            </div>
+          </div>
+        </div>
+        <div class="min-w-0 flex-1 user-info">
+          <p class="user-name">you</p>
+          <p class="user-status" id="userStatus">● online</p>
+        </div>
+        <button class="icon-btn" aria-label="Settings">
+          <i class="ti ti-settings"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Chat main ── -->
+    <main>
+
+      <!-- Search overlay -->
+      <div class="search-overlay" id="searchOverlay">
+        <div class="search-input-row">
+          <i class="ti ti-search"></i>
+          <input class="search-input" id="searchInput" type="text" placeholder="Search messages in this channel…" />
+          <button class="search-close-btn" id="closeSearch"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+
+      <!-- Mobile topbar — only visible on mobile -->
+      <div class="mobile-topbar">
+        <button class="icon-btn" id="openSidebar" aria-label="Open menu">
+          <i class="ti ti-menu-2"></i>
+        </button>
+        <div class="mobile-ch-title">
+          <i class="ti ti-hash" style="font-size:13px;color:var(--t3)"></i>
+          <span id="mobileChannelTitle">general</span>
+        </div>
+        <div class="mobile-topbar-actions">
+          <button class="icon-btn search-trigger" aria-label="Search"><i class="ti ti-search"></i></button>
+          <button class="icon-btn" aria-label="Members"><i class="ti ti-users"></i></button>
+        </div>
+      </div>
+
+      <!-- Desktop header — only visible on desktop -->
+      <header class="desktop-header">
+        <div class="ch-title">
+          <i class="ti ti-hash"></i>
+          <span id="desktopChannelTitle">general</span>
+        </div>
+        <div class="header-sep"></div>
+        <span class="header-desc" id="headerDesc">Team-wide discussion</span>
+        <div class="header-actions">
+          <button class="icon-btn search-trigger" aria-label="Search"><i class="ti ti-search"></i></button>
+          <button class="icon-btn" aria-label="Pin" id="pinBtn"><i class="ti ti-pin"></i></button>
+          <button class="icon-btn" aria-label="Members"><i class="ti ti-users"></i></button>
+        </div>
+      </header>
+
+      <!-- Pinned messages banner -->
+      <div class="pinned-banner" id="pinnedBanner" style="display:none">
+        <i class="ti ti-pin"></i>
+        <span class="pinned-banner-text" id="pinnedBannerText">Pinned message</span>
+        <span class="pinned-banner-count" id="pinnedCount"></span>
+        <button class="pinned-banner-close" id="pinnedBannerClose"><i class="ti ti-x"></i></button>
+      </div>
+
+      <section class="message-stream"
+               id="messageStream"
+               aria-label="Messages"
+               aria-live="polite">
+        <!-- Populated by renderAllMessages() -->
+      </section>
+
+      <!-- Typing indicator -->
+      <div class="typing-indicator" id="typingIndicator"></div>
+
+      <!-- Reply bar -->
+      <div class="reply-bar" id="replyBar">
+        <i class="ti ti-corner-up-left"></i>
+        <span class="reply-bar-text" id="replyBarText">Replying to…</span>
+        <button class="reply-bar-cancel" id="replyBarCancel"><i class="ti ti-x"></i></button>
+      </div>
+
+      <div class="chat-input-container">
+        <div class="input-row">
+          <button class="icon-btn attach-btn" aria-label="Attach file">
+            <i class="ti ti-paperclip"></i>
+          </button>
+          <textarea class="msg-input"
+                    id="msgInput"
+                    placeholder="Message #general"
+                    rows="1"
+                    aria-label="Message input"></textarea>
+          <div class="input-actions" style="position:relative">
+            <button class="icon-btn" id="emojiToggleBtn" aria-label="Emoji"><i class="ti ti-mood-smile"></i></button>
+            <button class="send-btn" id="sendBtn" aria-label="Send message">
+              <i class="ti ti-send"></i>
+            </button>
+            <!-- Emoji picker anchored here -->
+            <div class="emoji-picker" id="emojiPicker">
+              <div class="emoji-picker-search">
+                <input type="text" id="emojiSearch" placeholder="Search emoji…" />
+              </div>
+              <div class="emoji-picker-cats" id="emojiCats"></div>
+              <div class="emoji-grid" id="emojiGrid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
