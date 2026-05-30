@@ -5,7 +5,9 @@ export interface ChatMessage {
   created_at: string;       // ISO-8601 timestamp, e.g. "2026-05-22T09:14:00Z"
   channel_id: string;       // matches a Channel.id, e.g. "ch_general"
   sender_name: string;      // display handle, e.g. "maya.r" or LOCAL_USER
-  message_text: string;     // raw content; may contain inline code backticks
+  message_text: string; 
+  
+      // raw content; may contain inline code backticks
 }
 
 export interface Channel {

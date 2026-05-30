@@ -149,10 +149,11 @@ export function initializeRealtimeListener(refs: DOMRefs): RealtimeChannel {
 
         // Fetch reply snapshot if this message has one
         let replied_msg: MessageRow | null = null;
+        
         if (row.reply_to_id) {
           const { data } = await supabase
             .from("messages")
-            .select("id, sender_name, message_text")
+            .select("*")
             .eq("id", row.reply_to_id)
             .single();
           replied_msg = data ?? null;
