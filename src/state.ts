@@ -1,6 +1,6 @@
-import type { AppState, ChatMessage} from "./types.js";
+import type { AppState, ChatMessage } from "./types.js";
 
-// ─── Seed data ────────────────────────────────────────────────────────────────
+// ─── Seed messages (general channel demo content) ─────────────────────────────
 
 const seedMessages: ChatMessage[] = [
   {
@@ -72,18 +72,20 @@ const seedMessages: ChatMessage[] = [
 // ─── Singleton state ──────────────────────────────────────────────────────────
 
 export const state: AppState = {
-  localUser: "you",
+  localUser:       "you",
   activeChannelId: "ch_general",
 
+  // Hardcoded seed channels — loadPersistedChannels() will append any extras
+  // that exist in Supabase without duplicating these.
   channels: [
-    { id: "ch_general",       name: "general",         description: "Team-wide discussion", unread_count: 0 },
-    { id: "ch_engineering",   name: "engineering-room", description: "Engineering topics",   unread_count: 2 },
-    { id: "ch_design",        name: "design-system",   description: "Design tokens & UI",   unread_count: 0 },
-    { id: "ch_api",           name: "api-integration", description: "API work",              unread_count: 0 },
-    { id: "ch_deployments",   name: "deployments",     description: "Deploy pipeline",       unread_count: 1 },
-    { id: "ch_review",        name: "code-review",     description: "PR reviews",            unread_count: 0 },
-    { id: "ch_incidents",     name: "incidents",       description: "On-call & incidents",   unread_count: 0 },
-    { id: "ch_releases",      name: "releases",        description: "Release notes",         unread_count: 0 },
+    { id: "ch_general",     name: "general",         description: "Team-wide discussion", unread_count: 0 },
+    { id: "ch_engineering", name: "engineering-room", description: "Engineering topics",   unread_count: 2 },
+    { id: "ch_design",      name: "design-system",   description: "Design tokens & UI",   unread_count: 0 },
+    { id: "ch_api",         name: "api-integration", description: "API work",              unread_count: 0 },
+    { id: "ch_deployments", name: "deployments",     description: "Deploy pipeline",       unread_count: 1 },
+    { id: "ch_review",      name: "code-review",     description: "PR reviews",            unread_count: 0 },
+    { id: "ch_incidents",   name: "incidents",       description: "On-call & incidents",   unread_count: 0 },
+    { id: "ch_releases",    name: "releases",        description: "Release notes",         unread_count: 0 },
   ],
 
   directMessages: [
@@ -92,28 +94,27 @@ export const state: AppState = {
     { handle: "sam.dev", status: "offline" },
   ],
 
-  activeMessages: [...seedMessages],
-  reactions: {},       // msgId → { emoji: count }
-  userReactions: {},   // msgId → Set<emoji>
-  pinnedMessages: ['msg_008'],
-  replyingTo: null,    // { id, sender_name, message_text } | null
+  activeMessages:  [...seedMessages],
+  reactions:       {},   // msgId → { emoji: count }
+  userReactions:   {},   // msgId → Set<emoji>
+  pinnedMessages:  ["msg_008"],
+  replyingTo:      null,
 };
 
 // ─── State mutations ──────────────────────────────────────────────────────────
 
 /**
  * Appends a new message to activeMessages and returns the fully-typed object.
- * Generates a naive unique id from the current timestamp.
  */
 export function addMessage(
   text: string,
   senderName: string = state.localUser
 ): ChatMessage {
   const msg: ChatMessage = {
-    id: `msg_${Date.now()}`,
-    created_at: new Date().toISOString(),
-    channel_id: state.activeChannelId,
-    sender_name: senderName,
+    id:           `msg_${Date.now()}`,
+    created_at:   new Date().toISOString(),
+    channel_id:   state.activeChannelId,
+    sender_name:  senderName,
     message_text: text.trim(),
   };
   state.activeMessages.push(msg);
@@ -121,15 +122,13 @@ export function addMessage(
 }
 
 /**
- * Replaces activeMessages with messages for the given channel.
- * In a real app this would fetch from a server; here it just filters the seed.
+ * Switches the active channel and clears the message list.
+ * loadHistoricalMessages() will re-populate it from the DB.
  */
 export function switchChannel(channelId: string): void {
   const channel = state.channels.find((ch) => ch.id === channelId);
   if (!channel) return;
-  state.activeChannelId = channelId;
-  // Clear messages — loadHistoricalMessages will fetch the real data from DB
-  state.activeMessages = [];
-  // Reset unread badge
-  channel.unread_count = 0;
+  state.activeChannelId  = channelId;
+  state.activeMessages   = [];
+  channel.unread_count   = 0;
 }

@@ -7,20 +7,20 @@ import {
   sendMessage,
 } from "./supabaseMessages.js";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { initEmojiPicker } from "./emojiPicker.js";
-import { initScrollSentinel }                         from "./scroll.js";
-import { runSendLifecycle, autoResizeTextarea }       from "./inputManager.js";
+import { initEmojiPicker }                               from "./emojiPicker.js";
+import { initScrollSentinel }                            from "./scroll.js";
+import { runSendLifecycle, autoResizeTextarea }          from "./inputManager.js";
 import {
   initConnectionBanner,
   initConnectionListeners,
   updateFromRealtimeStatus,
 } from "./connectionStatus.js";
-import { initStatusMenu } from "./statusMenu.js";
-import { initTypingIndicator } from "./typingIndicator.js";
-import { initSearch } from "./search.js";
-import { initAddChannel } from "./addChannel.js";
-import { initReactions, openReactionPicker } from "./reactions.js";
-import { initReply, setReplyTo, clearReply } from "./reply.js";
+import { initStatusMenu }                                from "./statusMenu.js";
+import { initTypingIndicator }                           from "./typingIndicator.js";
+import { initSearch }                                    from "./search.js";
+import { initAddChannel, loadPersistedChannels }         from "./addChannel.js";
+import { initReactions, openReactionPicker }             from "./reactions.js";
+import { initReply, setReplyTo, clearReply }             from "./reply.js";
 
 // ─── DOM query helper ─────────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ const mobileTitle     = document.getElementById("mobileChannelTitle");
 function openSidebar(): void {
   sidebar?.classList.add("sidebar--open");
   sidebarOverlay?.classList.add("overlay--visible");
-  document.body.style.overflow = "hidden"; // prevent body scroll while drawer open
+  document.body.style.overflow = "hidden";
 }
 
 function closeSidebar(): void {
@@ -68,28 +68,24 @@ openSidebarBtn?.addEventListener("click",  openSidebar);
 closeSidebarBtn?.addEventListener("click", closeSidebar);
 sidebarOverlay?.addEventListener("click",  closeSidebar);
 
-// Close sidebar on Escape key
 document.addEventListener("keydown", (e: KeyboardEvent) => {
   if (e.key === "Escape") closeSidebar();
 });
 
-// ─── Phase 4 bootstrap ───────────────────────────────────────────────────────
+// ─── Feature init (non-async) ─────────────────────────────────────────────────
 
-// 1. Scroll sentinel — invisible anchor at end of stream
 initScrollSentinel(refs.messageStream);
 initTypingIndicator(refs);
 initSearch(refs, closeSidebar);
 initEmojiPicker(refs);
 initReactions(refs);
 initReply(refs);
-initAddChannel(activateChannel);
+initAddChannel(activateChannel);   // wires up the modal UI
 initStatusMenu();
 
-// 2. Connection banner — injected into the workspace name area
+// Connection banner
 const headerEl = queryOrThrow<HTMLElement>(".workspace-name");
 initConnectionBanner(headerEl);
-
-// 3. Network event listeners (online/offline/visibilitychange)
 initConnectionListeners();
 
 // ─── Realtime channel handle ──────────────────────────────────────────────────
@@ -108,7 +104,6 @@ async function activateChannel(channelId: string): Promise<void> {
 
   const ch = state.channels.find((c) => c.id === channelId);
   if (ch) {
-    // Update both desktop and mobile channel titles
     if (refs.channelTitle) refs.channelTitle.textContent = ch.name;
     if (mobileTitle)        mobileTitle.textContent       = ch.name;
   }
@@ -117,14 +112,12 @@ async function activateChannel(channelId: string): Promise<void> {
     el.classList.toggle("active", el.dataset.channelId === channelId);
   });
 
-  // Close sidebar on mobile after selecting a channel
   closeSidebar();
 
   await loadHistoricalMessages(refs);
   await loadReactions(refs);
   refreshPinnedBanner();
 
-  // Open new realtime channel and forward its status to the banner
   activeRealtimeChannel = initializeRealtimeListener(refs);
 
   activeRealtimeChannel.subscribe((status, err) => {
@@ -139,12 +132,14 @@ async function handleSend(): Promise<void> {
   const capturedText = refs.messageInput.value;
   if (!capturedText.trim()) return;
 
-  // Snapshot reply context before the send clears state
   const replySnapshot = state.replyingTo
-    ? { id: state.replyingTo.id, sender_name: state.replyingTo.sender_name, message_text: state.replyingTo.message_text }
+    ? {
+        id:           state.replyingTo.id,
+        sender_name:  state.replyingTo.sender_name,
+        message_text: state.replyingTo.message_text,
+      }
     : null;
 
-  // Clear the reply bar immediately (optimistic)
   if (state.replyingTo) clearReply();
 
   await runSendLifecycle({
@@ -178,12 +173,11 @@ document
     });
   });
 
-// ─── Event delegation: react + reply buttons on message bubbles ──────────────
+// ─── Event delegation: react + reply buttons ─────────────────────────────────
 
 refs.messageStream.addEventListener("click", (e: MouseEvent) => {
   const target = e.target as HTMLElement;
 
-  // React button
   const reactBtn = target.closest<HTMLButtonElement>(".react-btn");
   if (reactBtn) {
     e.stopPropagation();
@@ -192,7 +186,6 @@ refs.messageStream.addEventListener("click", (e: MouseEvent) => {
     return;
   }
 
-  // Reply button
   const replyBtn = target.closest<HTMLButtonElement>(".reply-btn");
   if (replyBtn) {
     e.stopPropagation();
@@ -208,9 +201,9 @@ refs.messageStream.addEventListener("click", (e: MouseEvent) => {
 // ─── Pinned banner ────────────────────────────────────────────────────────────
 
 function refreshPinnedBanner(): void {
-  const banner     = document.getElementById("pinnedBanner")     as HTMLElement | null;
-  const bannerText = document.getElementById("pinnedBannerText") as HTMLElement | null;
-  const bannerCount = document.getElementById("pinnedCount")     as HTMLElement | null;
+  const banner      = document.getElementById("pinnedBanner")      as HTMLElement | null;
+  const bannerText  = document.getElementById("pinnedBannerText")  as HTMLElement | null;
+  const bannerCount = document.getElementById("pinnedCount")       as HTMLElement | null;
   const bannerClose = document.getElementById("pinnedBannerClose") as HTMLButtonElement | null;
 
   if (!banner || !bannerText || !bannerCount) return;
@@ -222,20 +215,23 @@ function refreshPinnedBanner(): void {
     return;
   }
 
-  // Show preview of the first pinned message
-  const first = state.activeMessages.find((m) => ids.includes(m.id));
+  const first   = state.activeMessages.find((m) => ids.includes(m.id));
   const preview = first
-    ? `${first.sender_name}: ${first.message_text.replace(/```[\s\S]*?```/g, "[code]").replace(/`([^`]+)`/g, "$1").slice(0, 60)}`
+    ? `${first.sender_name}: ${first.message_text
+        .replace(/```[\s\S]*?```/g, "[code]")
+        .replace(/`([^`]+)`/g, "$1")
+        .slice(0, 60)}`
     : "Pinned message";
 
-  bannerText.textContent = preview;
+  bannerText.textContent  = preview;
   bannerCount.textContent = ids.length > 1 ? `+${ids.length - 1} more` : "";
-  banner.style.display = "flex";
+  banner.style.display    = "flex";
 
-  // Scroll to first pinned message on click
   banner.onclick = () => {
     if (!first) return;
-    const el = refs.messageStream.querySelector<HTMLElement>(`[data-message-id="${first.id}"]`);
+    const el = refs.messageStream.querySelector<HTMLElement>(
+      `[data-message-id="${first.id}"]`
+    );
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
@@ -246,21 +242,12 @@ function refreshPinnedBanner(): void {
 }
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
+// Load any channels that were previously created and saved to Supabase,
+// then activate the default channel.
 
-void activateChannel(state.activeChannelId);
+async function bootstrap(): Promise<void> {
+  await loadPersistedChannels(activateChannel);
+  await activateChannel(state.activeChannelId);
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void bootstrap();
